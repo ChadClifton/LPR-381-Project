@@ -8,15 +8,26 @@ namespace LPR381_Project
 {
     public class LPModel
     {
-        public bool IsMax { get; set; }                     //ture = max, false = min
+        public enum IsMax
+        {
+            Yes,
+            No
+        }
+        public IsMax Max{ get; set; }                     //yes = max, no = min
         public double[] ObjCoeffiecients { get; set; }      //obj coeffiecients  
         public List<Constraint> Constraints { get; set; }   //list of constraints
 
-        public LPModel(double[] objCoeffiecients, bool isMax)
+        public LPModel(IsMax isMax, double[] objCoeffiecients)
         {
             this.ObjCoeffiecients = objCoeffiecients;
-            this.IsMax = isMax;
+            Max = isMax;
             Constraints = new List<Constraint>();
         }
+
+        public void AddConstraint(Constraint constraint)
+        {
+            Constraints.Add(constraint);
+        }
+            
     }
 }
