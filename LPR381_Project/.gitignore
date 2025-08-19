@@ -1,0 +1,47 @@
+# Build Folders
+bin/
+obj/
+build/
+out/
+
+# Visual Studio Specific
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE Backups
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Auto-generated files
+*.cache
+*.pdb
+*.mdb
+*.exe
+*.dll
+
+# OS Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+
+# Test Results
+TestResult.xml
+TestResults/
+*.coverage
+*.coveragexml
