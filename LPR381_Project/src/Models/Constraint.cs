@@ -2,22 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Constraint
+namespace LPR381_Project
 {
-    public enum ConstraintType
+    public class Constraint
     {
-        LessThanOrEqual, // <=
-        MoreThanOrEqual, // >=
-        Equal            // =
-    }
-    public double[] Coefficients { get; set; }
-    public ConstraintType Type { get; set; }
-    public double RHS { get; set; }
+        public enum ConstraintType
+        {
+            LessThanOrEqual, // <=
+            MoreThanOrEqual, // >=
+            Equal            // =
+        }
+        public double[] Coefficients { get; set; }
+        public ConstraintType Type { get; set; }
+        public double RHS { get; set; }
 
-    public Constraint(double[] coefficients, ConstraintType type, double rhs )
-    {
-        Coefficients = coefficients;
-        Type = type;
-        RHS = rhs;
+        public Constraint(double[] coefficients, ConstraintType type, double rhs)
+        {
+            Coefficients = coefficients;
+            Type = type;
+            RHS = rhs;
+        }
     }
 }
