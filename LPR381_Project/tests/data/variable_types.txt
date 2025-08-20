@@ -1,0 +1,5 @@
+x1 >= 0
+x2 <= 10
+x3 urs
+x4 int
+x5 bin
