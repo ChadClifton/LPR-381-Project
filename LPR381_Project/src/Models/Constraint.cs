@@ -13,10 +13,10 @@ namespace LPR381_Project
             Equal            // =
         }
         public double[,] Coefficients { get; set; }
-        public ConstraintType Type { get; set; }
+        public ConstraintType[] Type { get; set; }
         public double[] RHS { get; set; }
 
-        public Constraint(double[,] coefficients, ConstraintType type, double[] rhs)
+        public Constraint(double[,] coefficients, ConstraintType[] type, double[] rhs)
         {
             Coefficients = coefficients;
             Type = type;
