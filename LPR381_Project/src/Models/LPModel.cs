@@ -1,26 +1,28 @@
+using LPR381_Project.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static LPR381_Project.Models.LPModel;
 
-namespace LPR381_Project
+namespace LPR381_Project.Models
 {
     public class LPModel
     {
-        public enum IsMax
+        public enum ObjectiveType
         {
-            Yes,
-            No
+            max,
+            min
         }
-        public IsMax Max{ get; set; }                     //yes = max, no = min
+        public ObjectiveType objectiveType { get; set; }    //max or min
         public double[] ObjCoeffiecients { get; set; }      //obj coeffiecients  
         public List<Constraint> Constraints { get; set; }   //list of constraints
 
-        public LPModel(IsMax isMax, double[] objCoeffiecients)
+        public LPModel(ObjectiveType objectiveType, double[] objCoeffiecients)
         {
             this.ObjCoeffiecients = objCoeffiecients;
-            Max = isMax;
+            this.objectiveType = objectiveType;
             Constraints = new List<Constraint>();
         }
 

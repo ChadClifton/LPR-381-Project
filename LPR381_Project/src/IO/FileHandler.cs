@@ -29,8 +29,8 @@ namespace LPR381_Project.IO
                 string objLine = lines[0].Trim().ToLower();
 
                 // Trying to determine if it is a max or min problem
-                if (objLine.StartsWith("max")) model.ObjectiveType = "max";
-                else if (objLine.StartsWith("min")) model.ObjectiveType = "min";
+                if (objLine.StartsWith("max")) model.objectiveType = LPModel.ObjectiveType.max;
+                else if (objLine.StartsWith("min")) model.objectiveType = LPModel.ObjectiveType.min;
                 else throw new Exception("Objective function has to be either max or min");
 
                 // Gettting the expression after 'max' or 'min'
@@ -50,7 +50,7 @@ namespace LPR381_Project.IO
                     string varName = "x" + parts[1];
 
                     //Adding it to the model
-                    model.ObjectiveCoefficients[varName] = coeff;
+                    model.ObjCoeffiecients[varName] = coeff;
 
                     //Adds the variable to the list if it does not exist
                     if (!model.Variables.Any(v => v.Name == varName))
@@ -75,17 +75,17 @@ namespace LPR381_Project.IO
                         if (line.Contains(">="))
                         {
                             sides = line.Split(">=");
-                            constraint.Operator = ">=";
+                            constraint.operators = Constraint.Operator.MoreThanOrEqual;
                         }
                         else if (line.Contains("<="))
                         {
                             sides = line.Split("<=");
-                            constraint.Operator = "<=";
+                            constraint.operators = Constraint.Operator.LessThanOrEqual;
                         }
                         else
                         {
                             sides = line.Split("=");
-                            constraint.Operator = "=";
+                            constraint.operators = Constraint.Operator.Equal;
                         }
 
                         //Parsing each term on the left side of the constraint
