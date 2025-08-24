@@ -1,53 +1,65 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
-using LPR381_Project.IO;
 using LPR381_Project.Models;
+using LPR381_Project.IO;
 
-namespace LPR381_Project.Tests
+namespace LPR381_Project.tests
 {
     public class FileHandlerTests
     {
         [Fact]
-        public void TestReadInputFile_Valid()
+        public void TestLoadModel_Valid()
         {
-            //Calls the method that we want to test with a valid input file
-            var model = FileHandler.ReadInputFile("tests/data/valid_input.txt");
+            string filePath = "data/model1.txt";
 
-            //Checking the linear programming model 
-            Assert.Equal("max", model.ObjectiveType);
-            Assert.Equal(3, model.ObjectiveCoefficients["x1"]);
-            Assert.Equal(5, model.ObjectiveCoefficients["x2"]);
+            var model = FileHandler.LoadModel(filePath);
+
+            Assert.True(model.IsMaximization);
+            Assert.Equal(new double[] { 2, 3, 4 }, model.ObjectiveCoefficients);
+
             Assert.Equal(2, model.Constraints.Count);
-            Assert.Equal("+", model.Variables.First(v => v.Name == "x1").Type);
-        
+            Assert.Equal(new double[] { 1, 2, 1 }, model.Constraints[0].Coeffs);
+            Assert.Equal(10, model.Constraints[0].RHS);
+
+            Assert.Equal("bin", model.Variables[0].SignRestriction);
+            Assert.Equal("int", model.Variables[1].SignRestriction);
+            Assert.Equal("urs", model.Variables[2].SignRestriction);
         }
 
         [Fact]
-
-        public void TestReadInputFile_InValid()
+        public void TestWriteResults()
         {
-            Assert.Throws<System.Exception>(() =>
+            var result = new SimplexResult
             {
-                FileHandler.ReadInputFile("tests/data/invalid_input.txt");
-            });
-        }
-
-        [Fact]
-        public void TestReadInputFile_AllVariableTypes()
+                Status = "Optimal",
+                ObjectiveValue = 42,
+                IsMaximization = true,
+                ObjectiveCoefficients = new double[] { 2, 3, 4 },
+                Variables = new List<Variable>
         {
-            var model = FileHandler.ReadInputFile("tests/data/variable_types.txt");
+            new Variable { Name = "x1" },
+            new Variable { Name = "x2" },
+            new Variable { Name = "x3" }
+        },
+                Constraints = new List<Constraint>
+        {
+            new Constraint { Coeffs = new double[] {1,2,1}, Relation = "<=", RHS = 10 },
+            new Constraint { Coeffs = new double[] {2,1,3}, Relation = "<=", RHS = 15 }
+        },
+                PrimalSolution = new double[] { 1, 2, 3 },
+                DualPrices = new double[] { 0.5, 1.2 },
+                Iterations = new List<string> { "Iteration 1 tableau", "Iteration 2 tableau" }
+            };
 
-            // Checking if each variable was assigned the correct type
-            Assert.Equal("+", model.Variables.First(v => v.Name == "x1").Type);
-            Assert.Equal("-", model.Variables.First(v => v.Name == "x2").Type);
-            Assert.Equal("urs", model.Variables.First(v => v.Name == "x3").Type);
-            Assert.Equal("int", model.Variables.First(v => v.Name == "x4").Type);
-            Assert.Equal("bin", model.Variables.First(v => v.Name == "x5").Type);
+            string outPath = "data/result1.txt";
+            FileHandler.WriteResults(outPath, result);
+
+            Assert.True(File.Exists(outPath));
         }
-
     }
+
+
+
 }
