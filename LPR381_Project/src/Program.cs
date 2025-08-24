@@ -154,3 +154,58 @@ namespace LP381_Project
     }
 }
 */
+
+using System;
+using System.Collections.Generic;
+using LPR381_Project.IO;
+using LPR381_Project.Models;
+using LP381_Project.IO;
+
+namespace LP381_Project
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // 1. Load a model (simulate a file path)
+            string inputFile = "tests/data/model1.txt";
+            LPModel model;
+            try
+            {
+                model = FileHandler.LoadModel(inputFile);
+                Console.WriteLine("Model loaded successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading model: {ex.Message}");
+                return;
+            }
+
+            // 2. Simulate solving the model and producing a SimplexResult
+            var result = new SimplexResult
+            {
+                IsMaximization = model.IsMaximization,
+                Variables = model.Variables,
+                Constraints = model.Constraints,
+                ObjectiveCoefficients = model.ObjectiveCoefficients,
+                Iterations = new List<string> { "Iteration 1: x1=0, x2=0", "Iteration 2: x1=1, x2=0.5" },
+                PrimalSolution = new double[] { 1, 0.5 },
+                DualPrices = new double[] { 2, 0 },
+                Status = "Optimal",
+                ObjectiveValue = 3.5
+            };
+
+            // 3. Write results to an output file
+            string outputFile = "tests/data/result1.txt";
+            try
+            {
+                OutputFormatter.WriteResults(outputFile, result);
+                Console.WriteLine($"Results written to {outputFile}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing results: {ex.Message}");
+            }
+        }
+    }
+}
