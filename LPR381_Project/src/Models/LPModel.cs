@@ -10,19 +10,21 @@ namespace LPR381_Project.Models
 {
     public class LPModel
     {
-        public enum ObjectiveType
-        {
-            max,
-            min
-        }
-        public ObjectiveType objectiveType { get; set; }    //max or min
-        public double[] ObjCoeffiecients { get; set; }      //obj coeffiecients  
+        //public enum ObjectiveType
+        //{
+        //    max,
+        //    min
+        //}
+        //public ObjectiveType objectiveType { get; set; }    //max or min
+        public bool IsMax { get; set; } //true = y, false = n
+        public double[] ObjCoefficients { get; set; }      //obj coefficients 
         public List<Constraint> Constraints { get; set; }   //list of constraints
 
-        public LPModel(ObjectiveType objectiveType, double[] objCoeffiecients)
+        public LPModel(bool isMax, double[] objCoefficients)
         {
-            this.ObjCoeffiecients = objCoeffiecients;
-            this.objectiveType = objectiveType;
+            this.ObjCoefficients = objCoefficients; 
+            this.IsMax = isMax;
+            //this.objectiveType = objectiveType; (ObjectiveType objectiveType)
             Constraints = new List<Constraint>();
         }
 
