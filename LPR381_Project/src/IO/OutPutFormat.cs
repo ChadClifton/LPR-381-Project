@@ -7,7 +7,7 @@ namespace LPR381_Project.IO
 {
     public static class OutputFormatter
     {
-        public static void WriteResults(string filepath, SimplexResult result)
+        public static void WriteResults(string filepath, SimplexSolver result)
         {
             using var writer = new StreamWriter(filepath);
 
