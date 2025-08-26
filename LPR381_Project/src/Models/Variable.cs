@@ -1,6 +1,6 @@
 namespace LPR381_Project
 {
-    public enum VaribleType
+    public enum VariableType
     {
         Decision,
         Slack,
@@ -11,19 +11,32 @@ namespace LPR381_Project
     public class Variable
     {
         public string Name { get; set; }
-        public VaribleType Type { get; set; }
-        public int Index { get; set; } //col in tableau
-        public double Value { get; set; } //final after solving
+        public string SignRestriction { get; set; }
+        public bool IsBinary { get; set; }
+        public bool IsInteger { get; set; }
+        public bool IsUnrestricted { get; set; }
+        public VariableType Type { get; set; } // Added for solver logic
+        public double Value { get; set; } // Added to store the final solution
 
-        public Variable(string name, VaribleType type, int index)
+        public Variable() { } // Parameterless constructor
+
+        public Variable(string name, string signRestriction)
         {
             Name = name;
-            Type = type;
-            Index = index;
-            Value = 0.0;
+            SignRestriction = signRestriction;
+            SetRestrictionFlags(signRestriction);
         }
-        public override string ToString() {
-            return $"{Name} ({Type}): {Value}";
+
+        private void SetRestrictionFlags(string signRestriction)
+        {
+            IsBinary = signRestriction.ToLower() == "bin";
+            IsInteger = signRestriction.ToLower() == "int";
+            IsUnrestricted = signRestriction.ToLower() == "urs";
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} ({SignRestriction}) = {Value:F3}";
         }
     }
 }

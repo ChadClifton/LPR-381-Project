@@ -23,15 +23,20 @@ namespace LP381_Project.IO
 
             //Making sure file has at east 3 sections (objective function, constraints and the restrictions)
             if (lines.Length < 3)
+            {
                 throw new InvalidDataException("File missing required sections.");
-
+            }
+    
             
             // Parsing the objective Function
             
             var objLine = lines[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
             bool isMax = objLine[0].ToLower() == "max";
             if (!isMax && objLine[0].ToLower() != "min")
+            {
                 throw new InvalidDataException("Objective must start with 'max' or 'min'");
+            }
+               
 
            
             var objectiveCoeffs = new List<double>();
@@ -44,7 +49,7 @@ namespace LP381_Project.IO
                 string varName = objLine[i + 1].ToLower();
 
                 objectiveCoeffs.Add(coeff);
-                variables.Add(new Variable { Name = varName, Type = "+", SignRestriction = "+" });
+                variables.Add(new Variable { Name = varName});
             }
 
             
@@ -76,7 +81,7 @@ namespace LP381_Project.IO
                     coeffs[index] = coeff;
                 }
 
-                constraints.Add(new Constraint { Coeffs = coeffs, Relation = relation, RHS = rhs });
+                constraints.Add(new Constraint { Coeffs = coeffs, Relation = relation, RHS = rhs, Type = Constraint.ParseRelation(relation) });
             }
 
          

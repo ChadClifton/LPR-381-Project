@@ -7,7 +7,15 @@ namespace LPR381_Project
 {
     public class SimplexSolver
     {
-        // fields
+        public bool IsMaximization { get; set; }
+        public double[] ObjectiveCoefficients { get; set; }
+        public List<Constraint> Constraints { get; set; }
+        public List<Variable> Variables { get; set; }
+        public string Status { get; set; }
+        public double ObjectiveValue { get; set; }
+        public double[] PrimalSolution { get; set; }
+        public double[] DualPrices { get; set; }
+        public List<string> Iterations { get; set; }
 
 
     }
