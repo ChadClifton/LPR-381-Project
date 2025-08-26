@@ -2,8 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-using LP381_Project.Models;
-using LPR381_Project;
+using LPR381_Project.Models;
 
 namespace LP381_Project.IO
 {
