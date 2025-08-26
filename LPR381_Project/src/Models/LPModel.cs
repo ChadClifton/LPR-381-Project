@@ -1,10 +1,12 @@
+using LPR381_Project.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static LPR381_Project.Models.LPModel;
 
-namespace LPR381_Project
+namespace LPR381_Project.Models
 {
     public class LPModel
     {

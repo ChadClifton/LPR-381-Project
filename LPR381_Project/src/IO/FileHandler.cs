@@ -2,8 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-using LP381_Project.Models;
-using LPR381_Project;
+using LPR381_Project.Models;
 
 namespace LP381_Project.IO
 {
@@ -59,7 +58,6 @@ namespace LP381_Project.IO
             for (int i = 1; i < lines.Length - 1; i++)
             {
                 var parts = lines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-
                 // Extracting the values of relation and the rhs
                 string relation = parts[parts.Count - 2];
                 double rhs = double.Parse(parts.Last());
@@ -81,7 +79,11 @@ namespace LP381_Project.IO
                     coeffs[index] = coeff;
                 }
 
+
                 constraints.Add(new Constraint { Coeffs = coeffs, Relation = relation, RHS = rhs, Type = Constraint.ParseRelation(relation) });
+
+
+
             }
 
          

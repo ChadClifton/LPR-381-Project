@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LPR381_Project
+namespace LPR381_Project.Models
 {
     public enum ConstraintType
     {
@@ -10,6 +10,7 @@ namespace LPR381_Project
         MoreThanOrEqual, // >=
         Equal            // =
     }
+
     public class Constraint
     {
         public double[] Coeffs { get; set; }
