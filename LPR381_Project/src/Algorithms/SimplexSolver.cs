@@ -199,7 +199,7 @@ namespace LP381_Project.Algorithms
 
             var slackCols = new List<int>(); //slack columns
             var artificialCols = new List<int>(); //artifical columns
-            var constraintTypes = raw.Constraints.Select(c => c.operators).ToList();
+            var constraintTypes = raw.Constraints.Select(c => c.Relation).ToList();
             int totalCols = n; //x1...xn
 
             // A and b
@@ -210,16 +210,16 @@ namespace LP381_Project.Algorithms
             {
                 b[i] = raw.Constraints[i].RHS;
                 for (int j = 0; j < n; j++)
-                    A[i, j] = raw.Constraints[i].Coefficients[j];
+                    A[i, j] = raw.Constraints[i].Coeffs[j];
 
-                if (raw.Constraints[i].operators == Constraint.Operator.LessThanOrEqual)
+                if (raw.Constraints[i].Relation == Constraint.Operator.LessThanOrEqual)
                 {
                     // slack
                     A[i, n + i] = 1.0;
                     varNames.Add($"s{i + 1}");
                     slackCols.Add(totalCols++);
                 }
-                else if (raw.Constraints[i].operators == Constraint.Operator.MoreThanOrEqual)
+                else if (raw.Constraints[i].Relation == Constraint.Operator.MoreThanOrEqual)
                 {
                     // slack
                     A[i, n + i] = -1.0;
@@ -232,7 +232,7 @@ namespace LP381_Project.Algorithms
                     artificialCols.Add(totalCols++);
                 }
 
-                else if (raw.Constraints[i].operators == Constraint.Operator.Equal)
+                else if (raw.Constraints[i].Relation == Constraint.Operator.Equal)
                 {
                     // artificial
                     A[i, n + i] = 1.0;

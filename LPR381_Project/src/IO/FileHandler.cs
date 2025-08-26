@@ -4,7 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using LPR381_Project.Models;
 
-namespace LP381_Project.IO
+namespace LPR381_Project.IO
 {
     public static class FileHandler
     {
