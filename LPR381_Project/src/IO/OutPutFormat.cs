@@ -56,11 +56,17 @@ namespace LPR381_Project.IO
 
             //This part writes out the iterations
             writer.WriteLine("\n=== Iterations ===");
-            foreach (var iter in result.Iterations)
+
+            if (result.Iterations != null)
             {
-                writer.WriteLine(iter);
-                writer.WriteLine("--------------------");
+                foreach (var iter in result.Iterations)
+                {
+                    writer.WriteLine(iter);
+                    writer.WriteLine("--------------------");
+                }
+
             }
+           
 
             //This part writes out the final solution
             writer.WriteLine("\n=== Final Solution ===");

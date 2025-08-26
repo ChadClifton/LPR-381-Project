@@ -10,28 +10,38 @@ namespace LPR381_Project.Models
 {
     public class LPModel
     {
-        //public enum ObjectiveType
-        //{
-        //    max,
-        //    min
-        //}
-        //public ObjectiveType objectiveType { get; set; }    //max or min
-        public bool IsMax { get; set; } //true = y, false = n
-        public double[] ObjCoefficients { get; set; }      //obj coefficients 
-        public List<Constraint> Constraints { get; set; }   //list of constraints
+        public bool IsMaximization { get; set; }
+        public List<double> ObjectiveCoefficients { get; private set; }
+        public List<Constraint> Constraints { get; private set; }
+        public List<Variable> Variables { get; private set; }
+        public int NumVariables => Variables.Count;
+        public int NumConstraints => Constraints.Count;
 
-        public LPModel(bool isMax, double[] objCoefficients)
+        public LPModel(bool isMaximization)
         {
-            this.ObjCoefficients = objCoefficients; 
-            this.IsMax = isMax;
-            //this.objectiveType = objectiveType; (ObjectiveType objectiveType)
+            IsMaximization = isMaximization;
+            ObjectiveCoefficients = new List<double>();
             Constraints = new List<Constraint>();
+            Variables = new List<Variable>();
+        }
+
+        public void AddVariable(Variable variable, double objectiveCoefficient)
+        {
+            if (Variables.Any(v => v.Name == variable.Name))
+            {
+                throw new ArgumentException($"A variable with the name '{variable.Name}' already exists.");
+            }
+            Variables.Add(variable);
+            ObjectiveCoefficients.Add(objectiveCoefficient);
         }
 
         public void AddConstraint(Constraint constraint)
         {
+            if (constraint.Coeffs.Length != NumVariables)
+            {
+                throw new InvalidOperationException("Constraint coefficients count must match the number of variables.");
+            }
             Constraints.Add(constraint);
         }
-            
     }
 }
