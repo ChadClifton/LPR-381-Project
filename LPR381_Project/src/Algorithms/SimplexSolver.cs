@@ -623,21 +623,11 @@ namespace LP381_Project.Algorithms
             RecomputeBInv();
         }
 
-        public double CurrentObjective()
-        {
-            // z = c_B^T x_B  where x_B = B^-1 b  (max form)
-            var cB = BasicIdx.Select(j => c[j]).ToArray();
-            var xB = MathUtils.Multiply(BInv, b);
-            return Math.Round(MathUtils.Dot(MathUtils.RowToVector1D(cB), xB), 3);
-        }
-
-        public double[] CurrentPrimal()
-        {
-            double[] x = new double[n];
-            double[] xB = MathUtils.Multiply(BInv, b);
-            for (int i = 0; i < m; i++) x[BasicIdx[i]] = xB[i];
-            return x.Select(v => Math.Round(Math.Max(0, v), 3)).ToArray();
-        }
+namespace LPR381_Project
+{
+    public class SimplexSolver
+    {
+        // fields
 
         public double[] CurrentDual()
         {

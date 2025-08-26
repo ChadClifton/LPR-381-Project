@@ -1,4 +1,6 @@
-namespace LPR381_Project
+using System;
+
+namespace LPR381_Project.Models
 {
     public enum VariableType
     {
