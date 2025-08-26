@@ -12,14 +12,14 @@ namespace LPR381_Project.Models
             MoreThanOrEqual, // >=
             Equal            // =
         }
-        public double[] Coefficients { get; set; }
-        public Operator operators { get; set; }
+        public double[] Coeffs { get; set; }
+        public Operator Relation { get; set; }
         public double RHS { get; set; }
 
-        public Constraint(double[] coefficients, Operator operatorType, double rhs)
+        public Constraint(double[] coefficients, Operator relationType, double rhs)
         {
-            Coefficients = coefficients;
-            this.operators = operatorType;
+            Coeffs = coefficients;
+            this.Relation = relationType;
             RHS = rhs;
         }
     }
