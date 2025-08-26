@@ -10,20 +10,29 @@ namespace LPR381_Project.Models
 {
     public class LPModel
     {
-        public enum IsMax
-        {
-            Yes,
-            No
-        }
-        public IsMax Max{ get; set; }                     //yes = max, no = min
-        public double[] ObjCoeffiecients { get; set; }      //obj coeffiecients  
-        public List<Constraint> Constraints { get; set; }   //list of constraints
+        public bool IsMaximization { get; set; }
+        public List<double> ObjectiveCoefficients { get; private set; }
+        public List<Constraint> Constraints { get; private set; }
+        public List<Variable> Variables { get; private set; }
+        public int NumVariables => Variables.Count;
+        public int NumConstraints => Constraints.Count;
 
-        public LPModel(IsMax isMax, double[] objCoeffiecients)
+        public LPModel(bool isMaximization)
         {
-            this.ObjCoeffiecients = objCoeffiecients;
-            Max = isMax;
+            IsMaximization = isMaximization;
+            ObjectiveCoefficients = new List<double>();
             Constraints = new List<Constraint>();
+            Variables = new List<Variable>();
+        }
+
+        public void AddVariable(Variable variable, double objectiveCoefficient)
+        {
+            if (Variables.Any(v => v.Name == variable.Name))
+            {
+                throw new ArgumentException($"A variable with the name '{variable.Name}' already exists.");
+            }
+            Variables.Add(variable);
+            ObjectiveCoefficients.Add(objectiveCoefficient);
         }
 
         public void AddConstraint(Constraint constraint)
