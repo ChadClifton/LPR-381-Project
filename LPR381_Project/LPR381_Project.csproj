@@ -5,12 +5,17 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>src\Resources\BelgiumCampus_Logo-Icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="tests\FileHandlerTestsProject\**" />
     <EmbeddedResource Remove="tests\FileHandlerTestsProject\**" />
     <None Remove="tests\FileHandlerTestsProject\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="src\Resources\BelgiumCampus_Logo-Icon.ico" />
   </ItemGroup>
 
 </Project>
