@@ -72,9 +72,24 @@ namespace LPR381_Project
         private static DualitySolver ds = new DualitySolver(new SimplexSolver());
         private static string algo = "primal";
 
+        static void DisplayMainMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("=== LPR381 Solver ===");
+            Console.WriteLine("1. Load Input File");
+            Console.WriteLine($"2. Select Algorithm (current: {algo})");
+            Console.WriteLine("3. Solve Model");
+            Console.WriteLine("4. Export Results");
+            Console.WriteLine("5. Sensitivity Analysis");
+            Console.WriteLine("6. Special Cases");
+            Console.WriteLine("7. Duality");
+            Console.WriteLine("8. Exit");
+        }
+
         static void Main(string[] args)
         {
             bool running = true;
+
             while (running)
             {
                 DisplayMainMenu();
@@ -112,6 +127,8 @@ namespace LPR381_Project
                         if (model == null)
                         {
                             Console.WriteLine("No model loaded. Please load a model first.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                             DisplayMainMenu();
                             break;
                         }
@@ -129,10 +146,14 @@ namespace LPR381_Project
                         {
                             DisplaySolution(lastResult);
                             sa = new SensitivityAnalysis(model, lastResult, new SimplexSolver(), algo == "revised");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                         }
                         else
                         {
                             Console.WriteLine("Failed to solve the model.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                         }
                         DisplayMainMenu(); // Return to main menu
                         break;
@@ -141,6 +162,8 @@ namespace LPR381_Project
                         if (lastResult == null)
                         {
                             Console.WriteLine("No solution available. Solve a model first.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                             DisplayMainMenu();
                             break;
                         }
@@ -148,6 +171,8 @@ namespace LPR381_Project
                         string outPath = Console.ReadLine();
                         OutputFormatter.WriteResults(outPath, model, lastResult);
                         Console.WriteLine("Results exported successfully.");
+                        Console.WriteLine("\nPress any key to return to main menu...");
+                        Console.ReadKey();
                         DisplayMainMenu(); // Return to main menu
                         break;
 
@@ -155,6 +180,8 @@ namespace LPR381_Project
                         if (sa == null)
                         {
                             Console.WriteLine("No sensitivity analysis available. Solve a model first.");
+                            Console.WriteLine("\n\nPress any key to return to main menu...");
+                            Console.ReadKey();
                             DisplayMainMenu();
                             break;
                         }
@@ -165,10 +192,14 @@ namespace LPR381_Project
                         if (model == null || lastResult == null)
                         {
                             Console.WriteLine("No model or solution available. Load and solve a model first.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                             DisplayMainMenu();
                             break;
                         }
                         SpecialCases.Report(model, lastResult);
+                        Console.WriteLine("\nPress any key to return to main menu...");
+                        Console.ReadKey();
                         DisplayMainMenu(); // Return to main menu
                         break;
 
@@ -176,42 +207,44 @@ namespace LPR381_Project
                         if (model == null || lastResult == null)
                         {
                             Console.WriteLine("No model or solution available. Load and solve a model first.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
                             DisplayMainMenu();
                             break;
                         }
-                        var dual = ds.ConstructDual(model);
-                        var dualRes = ds.SolveDual(model, algo == "revised");
-                        ds.VerifyDuality(lastResult, dualRes);
-                        Console.WriteLine("Duality analysis completed.");
+                        try
+                        {
+                            var dual = ds.ConstructDual(model);
+                            var dualRes = ds.SolveDual(model, algo == "revised");
+                            ds.VerifyDuality(lastResult, dualRes);
+                            Console.WriteLine("\nDuality analysis completed.");
+                            Console.WriteLine("\nPress any key to return to main menu...");
+                            Console.ReadKey();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error during duality analysis: {ex.Message}");
+                        }
                         DisplayMainMenu(); // Return to main menu
                         break;
 
                     case "8":
                         running = false;
                         Console.WriteLine("Exiting program...");
+                        Thread.Sleep(2000); // Pause for 2 seconds (2000 milliseconds)
                         break;
 
                     default:
                         Console.WriteLine("Invalid option. Please try again.");
+                        Console.WriteLine("\nPress any key to return to main menu...");
+                        Console.ReadKey();
                         DisplayMainMenu(); // Return to main menu on invalid input
                         break;
                 }
             }
         }
 
-        static void DisplayMainMenu()
-        {
-            Console.Clear();
-            Console.WriteLine("=== LPR381 Solver ===");
-            Console.WriteLine("1. Load Input File");
-            Console.WriteLine($"2. Select Algorithm (current: {algo})");
-            Console.WriteLine("3. Solve Model");
-            Console.WriteLine("4. Export Results");
-            Console.WriteLine("5. Sensitivity Analysis");
-            Console.WriteLine("6. Special Cases");
-            Console.WriteLine("7. Duality");
-            Console.WriteLine("8. Exit");
-        }
+        
 
         static void DisplayAlgorithmMenu()
         {
@@ -419,8 +452,6 @@ namespace LPR381_Project
             {
                 Console.WriteLine($"  {iteration}");
             }
-            Console.WriteLine("\nPress any key to return to main menu...");
-            Console.ReadKey();
         }
     }
 }
