@@ -113,11 +113,11 @@ namespace LPR381_Project
                         string algoChoice = Console.ReadLine().ToLower();
                         algo = algoChoice switch
                         {
-                            "a" => "primal",
-                            "b" => "revised",
-                            "c" => "bnb",
-                            "d" => "cutting",
-                            "e" => "knapsack",
+                            "1" => "primal",
+                            "2" => "revised",
+                            "3" => "bnb",
+                            "4" => "cutting",
+                            "5" => "knapsack",
                             _ => algo
                         };
                         DisplayMainMenu(); // Return to main menu
@@ -250,11 +250,11 @@ namespace LPR381_Project
         {
             Console.Clear();
             Console.WriteLine("=== Select Algorithm ===");
-            Console.WriteLine(" a) Primal Simplex");
-            Console.WriteLine(" b) Revised Simplex");
-            Console.WriteLine(" c) Branch & Bound Simplex");
-            Console.WriteLine(" d) Cutting Plane");
-            Console.WriteLine(" e) Branch & Bound Knapsack");
+            Console.WriteLine(" 1) Primal Simplex");
+            Console.WriteLine(" 2) Revised Simplex");
+            Console.WriteLine(" 3) Branch & Bound Simplex");
+            Console.WriteLine(" 4) Cutting Plane");
+            Console.WriteLine(" 5) Branch & Bound Knapsack");
             Console.Write("Choose algorithm: ");
         }
 

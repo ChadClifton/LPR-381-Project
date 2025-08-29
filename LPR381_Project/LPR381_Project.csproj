@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="tests\FileHandlerTestsProject\" />
+    <Compile Remove="tests\FileHandlerTestsProject\**" />
+    <EmbeddedResource Remove="tests\FileHandlerTestsProject\**" />
+    <None Remove="tests\FileHandlerTestsProject\**" />
   </ItemGroup>
 
 </Project>
