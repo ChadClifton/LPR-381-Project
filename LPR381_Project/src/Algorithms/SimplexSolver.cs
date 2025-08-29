@@ -1,6 +1,629 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using LPR381_Project.Models;
+using LPR381_Project.Utils;
+
+namespace LPR381_Project.Algorithms
+{
+    public enum SolveStatus { Optimal, Unbounded, Infeasible, IterationLimit }
+
+    public class SimplexResult
+    {
+        public SolveStatus Status { get; set; }
+        public double ObjectiveValue { get; set; }
+        public double[] PrimalSolution { get; set; } = Array.Empty<double>();
+        public double[] DualPrices { get; set; } = Array.Empty<double>();
+        public List<string> Iterations { get; set; } = new();
+    }
+
+    public class SimplexSolver
+    {
+        private const int ITER_LIMIT = 50;
+
+        public SimplexResult SolvePrimal(LPModel rawModel)
+        {
+            var engine = new SimplexEngine(ITER_LIMIT);
+            return engine.SolvePrimal(rawModel);
+        }
+
+        public SimplexResult SolveRevised(LPModel rawModel)
+        {
+            var engine = new SimplexEngine(ITER_LIMIT);
+            return engine.SolveRevised(rawModel);
+        }
+    }
+
+    internal class SimplexEngine
+    {
+        private readonly int ITER_LIMIT;
+
+        public SimplexEngine(int iterLimit)
+        {
+            ITER_LIMIT = iterLimit;
+        }
+
+        public SimplexResult SolvePrimal(LPModel rawModel)
+        {
+            var (A, b, c, sense, varNames, basicIdx, nonBasicIdx, hasArtificial, artificialCols) = Canonicalizer.ToStandardForm(rawModel);
+
+            if (hasArtificial)
+            {
+                double[] phase1C = new double[A.GetLength(1)];
+                foreach (int col in artificialCols)
+                    phase1C[col] = -1;
+
+                var (phase1Res, phase1Tm) = RunPrimalTableauPhaseI(A, b, phase1C, varNames, basicIdx, nonBasicIdx);
+
+                if (phase1Res.Status != SolveStatus.Optimal || Math.Round(phase1Res.ObjectiveValue, 6) != 0)
+                {
+                    phase1Res.Status = SolveStatus.Infeasible;
+                    return phase1Res;
+                }
+
+                // Switch to phase2 on the same tm
+                int previousN = A.GetLength(1);
+                phase1Tm.SetObjectiveRow(c, sense); // Use the original objective coefficients with sense
+
+                var phase2Res = PrimalTableauLoop(phase1Tm);
+                phase2Res.Iterations.InsertRange(0, phase1Res.Iterations);
+                return phase2Res;
+            }
+
+            return RunPrimalTableauPhaseII(A, b, c, varNames, basicIdx, nonBasicIdx, sense);
+        }
+
+        public SimplexResult SolveRevised(LPModel rawModel)
+        {
+            var (A, b, c, sense, varNames, basicIdx, nonBasicIdx, hasArtificial, artificialCols) = Canonicalizer.ToStandardForm(rawModel);
+
+            if (hasArtificial)
+            {
+                double[] phase1C = new double[A.GetLength(1)];
+                foreach (int col in artificialCols) phase1C[col] = -1;
+
+                var rs = new RevisedModel(A, b, phase1C, varNames, basicIdx, nonBasicIdx, phase: 1);
+
+                var phase1Res = RevisedLoop(rs, ref basicIdx, ref nonBasicIdx, phase: 1);
+
+                if (phase1Res.Status != SolveStatus.Optimal || Math.Round(phase1Res.ObjectiveValue, 6) != 0)
+                {
+                    phase1Res.Status = SolveStatus.Infeasible;
+                    return phase1Res;
+                }
+
+                // Switch to phase2 on the same rs
+                rs.c = c;
+                rs.phase = 2;
+
+                var phase2Res = RevisedLoop(rs, ref basicIdx, ref nonBasicIdx, phase: 2);
+                phase2Res.Iterations.InsertRange(0, phase1Res.Iterations);
+                return phase2Res;
+            }
+
+            return RunRevisedPhaseII(A, b, c, varNames, ref basicIdx, ref nonBasicIdx, sense);
+        }
+
+        private (SimplexResult, TableauModel) RunPrimalTableauPhaseI(double[,] A, double[] b, double[] phase1C, List<string> varNames, List<int> basicIdx, List<int> nonBasicIdx)
+        {
+            var tm = TableauBuilder.BuildPhaseITableau(A, b, varNames, basicIdx, nonBasicIdx);
+            var res = PrimalTableauLoop(tm);
+            return (res, tm);
+        }
+
+        private SimplexResult RunPrimalTableauPhaseII(double[,] A, double[] b, double[] c, List<string> varNames, List<int> basicIdx, List<int> nonBasicIdx, int sense)
+        {
+            var tm = TableauBuilder.BuildPhaseIITableau(A, b, c, varNames, basicIdx, nonBasicIdx, sense);
+            return PrimalTableauLoop(tm);
+        }
+
+        private SimplexResult PrimalTableauLoop(TableauModel tm)
+        {
+            var res = new SimplexResult();
+            int iter = 0;
+
+            while (iter++ < ITER_LIMIT)
+            {
+                tm.AppendIterationTo(res.Iterations);
+
+                int enter = tm.SelectEnteringVariable();
+                if (enter == -1)
+                {
+                    res.Status = SolveStatus.Optimal;
+                    res.ObjectiveValue = tm.GetObjectiveValue();
+                    res.PrimalSolution = tm.GetPrimalSolution();
+                    res.DualPrices = tm.GetDualPrices();
+                    return res;
+                }
+
+                int leave = tm.SelectLeavingVariable(enter);
+                if (leave == -1)
+                {
+                    res.Status = SolveStatus.Unbounded;
+                    return res;
+                }
+
+                tm.Pivot(leave, enter);
+            }
+
+            res.Status = SolveStatus.IterationLimit;
+            return res;
+        }
+
+        private SimplexResult RunRevisedPhaseII(double[,] A, double[] b, double[] c, List<string> varNames, ref List<int> basicIdx, ref List<int> nonBasicIdx, int sense)
+        {
+            var rs = new RevisedModel(A, b, c, varNames, basicIdx, nonBasicIdx, phase: 2, sense: sense);
+            return RevisedLoop(rs, ref basicIdx, ref nonBasicIdx, phase: 2);
+        }
+
+        private SimplexResult RevisedLoop(RevisedModel rs, ref List<int> basicIdx, ref List<int> nonBasicIdx, int phase)
+        {
+            var res = new SimplexResult();
+            int iter = 0;
+
+            while (iter++ < ITER_LIMIT)
+            {
+                rs.AppendIterationTo(res.Iterations);
+
+                var (enterIdx, enterCol) = rs.SelectEntering();
+                if (enterIdx == -1)
+                {
+                    res.Status = SolveStatus.Optimal;
+                    res.ObjectiveValue = rs.CurrentObjective();
+                    res.PrimalSolution = rs.CurrentPrimal();
+                    res.DualPrices = rs.CurrentDual();
+                    basicIdx = rs.BasicIdx;
+                    nonBasicIdx = rs.NonBasicIdx;
+                    return res;
+                }
+
+                double[] d = rs.Direction(enterCol);
+                int leavePos = rs.SelectLeaving(d);
+                if (leavePos == -1)
+                {
+                    res.Status = SolveStatus.Unbounded;
+                    return res;
+                }
+
+                rs.Pivot(leavePos, enterIdx, d);
+            }
+
+            res.Status = SolveStatus.IterationLimit;
+            return res;
+        }
+    }
+    internal static class Canonicalizer
+    {
+        /// <summary>
+        /// Converts the LP model to standard form: max c x, s.t. A x = b, x >=0
+        /// Adds slacks, surplus, artificials as needed.
+        /// Returns A, b, c (with sense), varNames, basicIdx, nonBasicIdx, hasArtificial, artificialCols
+        /// </summary>
+        public static (double[,] A, double[] b, double[] c, int sense, List<string> varNames,
+            List<int> basicIdx, List<int> nonBasicIdx, bool hasArtificial, List<int> artificialCols)
+            ToStandardForm(LPModel raw)
+        {
+            int sense = raw.IsMaximization ? 1 : -1;
+            double[] c = raw.ObjectiveCoefficients.Select(x => sense * x).ToArray();
+
+            int m = raw.NumConstraints;
+            int n = raw.NumVariables;
+
+            var varNames = new List<string>();
+            for (int j = 0; j < n; j++) varNames.Add(raw.Variables[j].Name);
+
+            var artificialCols = new List<int>();
+            var basicIdx = new List<int>(new int[m]);
+            var nonBasicIdx = new List<int>(Enumerable.Range(0, n));
+
+            int slackArtPos = n;
+            int surplusPos = n + m;
+            int surplusCount = 0;
+
+            double[,] A = new double[m, n + m + m]; // max for surplus
+            double[] b = new double[m];
+
+            for (int i = 0; i < m; i++)
+            {
+                b[i] = raw.Constraints[i].RHS;
+                for (int j = 0; j < n; j++)
+                    A[i, j] = raw.Constraints[i].Coeffs[j];
+
+                var type = raw.Constraints[i].Type;
+
+                if (type == ConstraintType.LessThanOrEqual)
+                {
+                    A[i, slackArtPos] = 1.0;
+                    varNames.Add($"s{i + 1}");
+                    basicIdx[i] = slackArtPos;
+                    slackArtPos++;
+                }
+                else if (type == ConstraintType.MoreThanOrEqual)
+                {
+                    A[i, surplusPos] = -1.0;
+                    varNames.Add($"sur{i + 1}");
+                    nonBasicIdx.Add(surplusPos);
+                    surplusPos++;
+                    surplusCount++;
+
+                    A[i, slackArtPos] = 1.0;
+                    varNames.Add($"a{i + 1}");
+                    artificialCols.Add(slackArtPos);
+                    basicIdx[i] = slackArtPos;
+                    slackArtPos++;
+                }
+                else if (type == ConstraintType.Equal)
+                {
+                    A[i, slackArtPos] = 1.0;
+                    varNames.Add($"a{i + 1}");
+                    artificialCols.Add(slackArtPos);
+                    basicIdx[i] = slackArtPos;
+                    slackArtPos++;
+                }
+            }
+
+            int totalCols = Math.Max(slackArtPos, surplusPos);
+
+            // Trim A to totalCols
+            double[,] ATrim = new double[m, totalCols];
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < totalCols; j++)
+                    ATrim[i, j] = A[i, j];
+            A = ATrim;
+
+            // Extend c to totalCols with 0s
+            double[] cExt = new double[totalCols];
+            Array.Copy(c, cExt, n);
+            c = cExt;
+
+            bool hasArtificial = artificialCols.Count > 0;
+
+            return (A, b, c, sense, varNames, basicIdx, nonBasicIdx, hasArtificial, artificialCols);
+        }
+    }
+
+    internal class TableauModel
+    {
+        private double[,] T;
+        private int m, n;
+        private List<string> varNames;
+        private List<int> basicIdx;
+        private List<int> nonBasicIdx;
+
+        public TableauModel(double[,] tableau, int m, int n, List<string> varNames, List<int> basicIdx, List<int> nonBasicIdx)
+        {
+            T = (double[,])tableau.Clone(); // Deep copy to avoid reference issues
+            this.m = m;
+            this.n = n; // Ensure n is the total columns
+            this.varNames = new List<string>(varNames);
+            this.basicIdx = new List<int>(basicIdx);
+            this.nonBasicIdx = new List<int>(nonBasicIdx);
+        }
+
+        public int ColumnCount => n; // Consistent access
+
+        public void MakeObjectiveBasicConsistent()
+        {
+            for (int k = 0; k < basicIdx.Count; k++)
+            {
+                int col = basicIdx[k];
+                int row = RowOfBasic(col);
+                double coeff = T[0, col];
+                if (Math.Abs(coeff) > 1e-12)
+                {
+                    for (int j = 0; j <= n; j++)
+                        T[0, j] -= coeff * T[row, j];
+                }
+            }
+        }
+
+        private int RowOfBasic(int col)
+        {
+            int pos = basicIdx.IndexOf(col);
+            return pos + 1; // rows 1..m
+        }
+
+        public int SelectEnteringVariable()
+        {
+            int enter = -1;
+            double mostNeg = 0;
+            for (int j = 0; j < n; j++)
+            {
+                if (T[0, j] < mostNeg - 1e-12)
+                {
+                    mostNeg = T[0, j];
+                    enter = j;
+                }
+            }
+            return enter;
+        }
+
+        public int SelectLeavingVariable(int enterCol)
+        {
+            double best = double.PositiveInfinity;
+            int leaveRow = -1;
+            for (int i = 1; i <= m; i++)
+            {
+                double aij = T[i, enterCol];
+                if (aij > 1e-12)
+                {
+                    double ratio = T[i, n] / aij;
+                    if (ratio < best - 1e-12)
+                    {
+                        best = ratio;
+                        leaveRow = i;
+                    }
+                }
+            }
+            return leaveRow;
+        }
+
+        public void Pivot(int leaveRow, int enterCol)
+        {
+            double piv = T[leaveRow, enterCol];
+            for (int j = 0; j <= n; j++) T[leaveRow, j] /= piv;
+
+            for (int i = 0; i <= m; i++)
+            {
+                if (i == leaveRow) continue;
+                double factor = T[i, enterCol];
+                if (Math.Abs(factor) > 1e-12)
+                    for (int j = 0; j <= n; j++)
+                        T[i, j] -= factor * T[leaveRow, j];
+            }
+
+            int oldBasic = basicIdx[leaveRow - 1];
+            basicIdx[leaveRow - 1] = enterCol;
+            nonBasicIdx.Remove(enterCol);
+            nonBasicIdx.Add(oldBasic);
+        }
+
+        public double GetObjectiveValue() => Math.Round(T[0, n], 3);
+
+        public double[] GetPrimalSolution()
+        {
+            double[] x = new double[n];
+            for (int k = 0; k < basicIdx.Count; k++)
+            {
+                int col = basicIdx[k];
+                int row = RowOfBasic(col);
+                x[col] = T[row, n];
+            }
+            return x.Select(v => Math.Round(v, 3)).ToArray();
+        }
+
+        public double[] GetDualPrices()
+        {
+            double[] y = new double[m];
+            for (int i = 0; i < m; i++)
+            {
+                int bCol = basicIdx[i];
+                y[i] = -T[0, bCol];
+            }
+            return y.Select(v => Math.Round(v, 3)).ToArray();
+        }
+
+        public void AppendIterationTo(List<string> log)
+        {
+            var lines = new List<string>();
+            lines.Add("Tableau (3 dp):");
+            for (int i = 0; i <= m; i++)
+            {
+                var row = new List<string>();
+                for (int j = 0; j <= n; j++)
+                    row.Add(Math.Round(T[i, j], 3).ToString("0.000"));
+                lines.Add(string.Join(" | ", row));
+            }
+            log.Add(string.Join(Environment.NewLine, lines));
+        }
+
+        // Add this method to update the objective row
+        public void SetObjectiveRow(double[] newObjective, int sense)
+        {
+            Console.WriteLine($"newObjective.Length: {newObjective.Length}, n: {n}");
+            if (newObjective.Length != n)
+                throw new ArgumentException("Objective length must match number of columns.");
+            for (int j = 0; j < n; j++)
+                T[0, j] = -newObjective[j] * sense;
+            T[0, n] = 0;
+            MakeObjectiveBasicConsistent();
+        }
+    }
+
+    internal static class TableauBuilder
+    {
+        public static TableauModel BuildPhaseIITableau(double[,] A, double[] b, double[] c, List<string> varNames, List<int> basicIdx, List<int> nonBasicIdx, int sense)
+        {
+            int m = b.Length;
+            int n = A.GetLength(1);
+
+            double[,] T = new double[m + 1, n + 1];
+            for (int j = 0; j < n; j++) T[0, j] = -c[j];
+            T[0, n] = 0.0;
+
+            for (int i = 0; i < m; i++)
+            {
+                for (int j = 0; j < n; j++) T[i + 1, j] = A[i, j];
+                T[i + 1, n] = b[i];
+            }
+
+            var tm = new TableauModel(T, m, n, varNames, basicIdx, nonBasicIdx);
+            tm.MakeObjectiveBasicConsistent();
+            return tm;
+        }
+
+        public static TableauModel BuildPhaseITableau(double[,] A, double[] b, List<string> varNames, List<int> basicIdx, List<int> nonBasicIdx)
+        {
+            int m = b.Length;
+            int n = A.GetLength(1);
+
+            int nArt = m;
+            int totalVars = n + nArt;
+
+            double[,] T = new double[m + 1, totalVars + 1];
+
+            for (int i = 0; i < m; i++)
+            {
+                for (int j = 0; j < n; j++) T[i + 1, j] = A[i, j];
+                T[i + 1, n + i] = 1.0; // phase1 artificial
+                T[i + 1, totalVars] = b[i];
+            }
+
+            for (int i = 0; i < nArt; i++) T[0, n + i] = -1.0;
+
+            for (int i = 0; i < nArt; i++) varNames.Add($"a_phase1_{i + 1}");
+
+            basicIdx.Clear();
+            for (int i = 0; i < m; i++) basicIdx.Add(n + i);
+
+            nonBasicIdx.Clear();
+            for (int j = 0; j < n; j++) nonBasicIdx.Add(j);
+
+            var tm = new TableauModel(T, m, totalVars, varNames, basicIdx, nonBasicIdx);
+            tm.MakeObjectiveBasicConsistent();
+            return tm;
+        }
+    }
+
+    internal class RevisedModel
+    {
+        private double[,] A;
+        private double[] b;
+        public double[] c;
+        private int m, n;
+        public int phase;
+        public int sense;
+        public List<string> VarNames { get; }
+        public List<int> BasicIdx { get; private set; }
+        public List<int> NonBasicIdx { get; private set; }
+
+        private double[,] BInv;
+
+        public RevisedModel(double[,] A, double[] b, double[] c, List<string> names, List<int> basicIdx, List<int> nonBasicIdx, int phase, int sense = 1)
+        {
+            this.A = A;
+            this.b = b;
+            this.c = c;
+            this.phase = phase;
+            this.sense = sense;
+            m = b.Length;
+            n = A.GetLength(1);
+            VarNames = names;
+            BasicIdx = new List<int>(basicIdx);
+            NonBasicIdx = new List<int>(nonBasicIdx);
+            RecomputeBInv();
+        }
+
+        private void RecomputeBInv()
+        {
+            var B = MathUtils.Submatrix(A, Enumerable.Range(0, m).ToArray(), BasicIdx.ToArray());
+            BInv = MathUtils.Invert(B);
+        }
+
+        public (int enterIdx, double[] a_enter) SelectEntering()
+        {
+            double[] cB = BasicIdx.Select(j => c[j]).ToArray();
+            double[,] yT = MathUtils.Multiply(MathUtils.RowToVector1D(cB), BInv); // 1xm
+
+            int enter = -1;
+            double mostNeg = 0;
+            double[] aEnter = null;
+            foreach (int j in NonBasicIdx)
+            {
+                double[] a_j = MathUtils.Column(A, j);
+                double yTa = MathUtils.Dot(yT, a_j);
+                double rc = c[j] - yTa;
+                if (rc < mostNeg - 1e-12)
+                {
+                    mostNeg = rc;
+                    enter = j;
+                    aEnter = a_j;
+                }
+            }
+            return (enter, aEnter);
+        }
+
+        public double[] Direction(double[] aEnter)
+        {
+            return MathUtils.Multiply(BInv, aEnter);
+        }
+
+        public int SelectLeaving(double[] d)
+        {
+            double best = double.PositiveInfinity;
+            int leavePos = -1;
+            double[] xB = MathUtils.Multiply(BInv, b);
+            for (int i = 0; i < m; i++)
+            {
+                if (d[i] > 1e-12)
+                {
+                    double ratio = xB[i] / d[i];
+                    if (ratio < best - 1e-12)
+                    {
+                        best = ratio;
+                        leavePos = i;
+                    }
+                }
+            }
+            return leavePos;
+        }
+
+        public void Pivot(int leavePos, int enterIdx, double[] d)
+        {
+            int leaveIdx = BasicIdx[leavePos];
+            BasicIdx[leavePos] = enterIdx;
+            NonBasicIdx.Remove(enterIdx);
+            NonBasicIdx.Add(leaveIdx);
+
+            RecomputeBInv();
+        }
+
+        public double CurrentObjective()
+        {
+            double[] cB = BasicIdx.Select(j => c[j]).ToArray();
+            double[] xB = MathUtils.Multiply(BInv, b);
+            double z = 0;
+            for (int i = 0; i < cB.Length; i++) z += cB[i] * xB[i];
+            return Math.Round(z, 3);
+        }
+
+        public double[] CurrentPrimal()
+        {
+            double[] x = new double[n];
+            double[] xB = MathUtils.Multiply(BInv, b);
+            for (int k = 0; k < BasicIdx.Count; k++)
+                x[BasicIdx[k]] = xB[k];
+            return x.Select(v => Math.Round(v, 3)).ToArray();
+        }
+
+        public double[] CurrentDual()
+        {
+            double[] cB = BasicIdx.Select(j => c[j]).ToArray();
+            double[,] yT = MathUtils.Multiply(MathUtils.RowToVector1D(cB), BInv);
+            double[] y = new double[m];
+            for (int i = 0; i < m; i++) y[i] = yT[0, i];
+            return y.Select(v => Math.Round(v, 3)).ToArray();
+        }
+
+        public void AppendIterationTo(List<string> log)
+        {
+            var lines = new List<string>();
+            lines.Add("Revised iteration (3 dp):");
+            lines.Add($"Basis: {string.Join(", ", BasicIdx.Select(j => VarNames[j]))}");
+            lines.Add($"NonBasis: {string.Join(", ", NonBasicIdx.Select(j => VarNames[j]))}");
+            lines.Add("B^-1:");
+            lines.Add(MathUtils.PrettyMatrix(BInv, 3));
+            log.Add(string.Join(Environment.NewLine, lines));
+        }
+    }
+}
+
+/*
+// (Origianl work)
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using LP381_Project.Algorithms;
 using LP381_Project.Utils;
 using LPR381_Project.Models;
@@ -652,3 +1275,4 @@ namespace LPR381_Project
         }
     }
 }
+*/

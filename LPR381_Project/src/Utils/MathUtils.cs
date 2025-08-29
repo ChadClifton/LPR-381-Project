@@ -1,8 +1,153 @@
 using System;
 using System.Linq;
 using System.Text;
-using LP381_Project.Utils;
 
+namespace LPR381_Project.Utils
+{
+    public static class MathUtils
+    {
+        public static double[,] Invert(double[,] M, double tolerance = 1e-10)
+        {
+            int n = M.GetLength(0);
+            if (n != M.GetLength(1)) throw new ArgumentException("Matrix must be square");
+
+            double[,] A = new double[n, n * 2];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    A[i, j] = M[i, j];
+                    A[i, n + j] = (i == j) ? 1.0 : 0.0;
+                }
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                int maxRow = i;
+                for (int k = i + 1; k < n; k++)
+                    if (Math.Abs(A[k, i]) > Math.Abs(A[maxRow, i]))
+                        maxRow = k;
+
+                if (Math.Abs(A[maxRow, i]) < tolerance)
+                    throw new InvalidOperationException("Matrix is singular");
+
+                if (maxRow != i)
+                {
+                    for (int j = 0; j < n * 2; j++)
+                    {
+                        double tmp = A[i, j];
+                        A[i, j] = A[maxRow, j];
+                        A[maxRow, j] = tmp;
+                    }
+                }
+
+                double p = A[i, i];
+                for (int j = 0; j < 2 * n; j++) A[i, j] /= p;
+
+                for (int r = 0; r < n; r++)
+                {
+                    if (r == i) continue;
+                    double factor = A[r, i];
+                    for (int j = 0; j < 2 * n; j++) A[r, j] -= factor * A[i, j];
+                }
+            }
+
+            double[,] inverse = new double[n, n];
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                    inverse[i, j] = A[i, n + j];
+
+            return inverse;
+        }
+
+        public static double[,] Submatrix(double[,] A, int[] rows, int[] cols)
+        {
+            double[,] R = new double[rows.Length, cols.Length];
+            for (int i = 0; i < rows.Length; i++)
+                for (int j = 0; j < cols.Length; j++)
+                    R[i, j] = A[rows[i], cols[j]];
+            return R;
+        }
+
+        public static double[] Column(double[,] A, int col)
+        {
+            int m = A.GetLength(0);
+            double[] v = new double[m];
+            for (int i = 0; i < m; i++) v[i] = A[i, col];
+            return v;
+        }
+
+        public static double[] Multiply(double[,] M, double[] v)
+        {
+            int r = M.GetLength(0), c = M.GetLength(1);
+            if (c != v.Length) throw new ArgumentException("Dimension mismatch");
+            double[] res = new double[r];
+            for (int i = 0; i < r; i++)
+            {
+                double s = 0;
+                for (int j = 0; j < c; j++) s += M[i, j] * v[j];
+                res[i] = s;
+            }
+            return res;
+        }
+
+        public static double[,] Multiply(double[,] A, double[,] B)
+        {
+            int r = A.GetLength(0), k = A.GetLength(1);
+            int k2 = B.GetLength(0), c = B.GetLength(1);
+            if (k != k2) throw new ArgumentException("Dimension mismatch");
+            double[,] R = new double[r, c];
+            for (int i = 0; i < r; i++)
+                for (int j = 0; j < c; j++)
+                {
+                    double s = 0;
+                    for (int t = 0; t < k; t++) s += A[i, t] * B[t, j];
+                    R[i, j] = s;
+                }
+            return R;
+        }
+
+        public static double[,] Transpose(double[,] A)
+        {
+            int r = A.GetLength(0), c = A.GetLength(1);
+            double[,] T = new double[c, r];
+            for (int i = 0; i < r; i++)
+                for (int j = 0; j < c; j++)
+                    T[j, i] = A[i, j];
+            return T;
+        }
+
+        public static double Dot(double[,] rowVector1xN, double[] vecN)
+        {
+            int n = vecN.Length;
+            double s = 0;
+            for (int j = 0; j < n; j++) s += rowVector1xN[0, j] * vecN[j];
+            return s;
+        }
+
+        public static string PrettyMatrix(double[,] M, int dp = 3)
+        {
+            var sb = new StringBuilder();
+            int r = M.GetLength(0), c = M.GetLength(1);
+            for (int i = 0; i < r; i++)
+            {
+                var row = Enumerable.Range(0, c)
+                    .Select(j => Math.Round(M[i, j], dp).ToString("0.000"));
+                sb.AppendLine(string.Join(" ", row));
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        public static double[,] RowToVector1D(double[] A)
+        {
+            double[,] v = new double[1, A.Length];
+            for (int i = 0; i < A.Length; i++) v[0, i] = A[i];
+            return v;
+        }
+    }
+}
+
+/*
 namespace LP381_Project.Utils
 {
     public static class MathUtils
@@ -174,3 +319,4 @@ namespace LP381_Project.Utils
         }
     }
 }
+*/
